@@ -61,35 +61,8 @@ def parse_args():
     return parser.parse_args()
 
 
-def main():
-    """Alternate form of rebasing using cherry picks.
-
-    1. Use `git diff` to find the differences from the upstream commit
-    to the forked commit.
-
-    2. Use whatthepatch to parse the diff. For each line that is an
-    insertion in the diff, use `git blame` to find the commit that
-    last touched that line. (Finding the commit that removed a line is
-    doable but trickier; I didn't bother doing it since very few
-    commits are *only* removing lines, and those can be cherry-picked
-    manually later.)
-
-    3. Deduplicate all the commits found in step two and sort them
-    from oldest to newest.
-
-    4. Create a detached checkout of the upstream commit and
-    cherry-pick all the commits from oldest to newest.
-
-    """
-    # pylint: disable=too-many-locals
-
-    args = parse_args()
-
-    cmd = ('git', '-C', args.repo, 'diff', args.upstream_rev,
-           args.modified_rev)
-    output = subprocess.run(cmd, capture_output=True, check=True, text=True)
-    patch = output.stdout
-
+def get_commits_from_patch(patch, args):
+    """Get the set of commits associated with added lines in the patch."""
     commits = set()
 
     for diff in whatthepatch.parse_patch(patch):
@@ -123,6 +96,38 @@ def main():
             commit_datetime = '{}T{}{}'.format(commit_date, commit_time,
                                                commit_zone)
             commits.add((commit_datetime, commit_hash))
+
+    return commits
+
+
+def main():
+    """Alternate form of rebasing using cherry picks.
+
+    1. Use `git diff` to find the differences from the upstream commit
+    to the forked commit.
+
+    2. Use whatthepatch to parse the diff. For each line that is an
+    insertion in the diff, use `git blame` to find the commit that
+    last touched that line. (Finding the commit that removed a line is
+    doable but trickier; I didn't bother doing it since very few
+    commits are *only* removing lines, and those can be cherry-picked
+    manually later.)
+
+    3. Deduplicate all the commits found in step two and sort them
+    from oldest to newest.
+
+    4. Create a detached checkout of the upstream commit and
+    cherry-pick all the commits from oldest to newest.
+
+    """
+    args = parse_args()
+
+    cmd = ('git', '-C', args.repo, 'diff', args.upstream_rev,
+           args.modified_rev)
+    output = subprocess.run(cmd, capture_output=True, check=True, text=True)
+    patch = output.stdout
+
+    commits = get_commits_from_patch(patch, args)
 
     # Checkout the detached upstream revision in preparation for
     # cherry picking
