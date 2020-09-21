@@ -36,12 +36,28 @@ the original branch to see if anything was accidentally changed. Note
 in particular that the current method of using `git blame` does not
 handle deleted lines, so a patch that only removed lines without
 adding or changing any lines will be missed.
+
+Once all this has been done you can do additional cleanups of the
+commits via rebase, then cherry-pick the final commits to a new branch
+based on the new upstream version you are transitioning to.
+
+Example usage:
+
+./once_again.py /my/git/repo my-branch v1.2.4
 """
 
 import argparse
 import subprocess
 
 import whatthepatch
+
+def parse_args():
+    """Parse command-line arguments."""
+    parser = argparse.ArgumentParser()
+    parser.add_argument('repo', help='repo path')
+    parser.add_argument('modified_rev', help='modified revision')
+    parser.add_argument('upstream_rev', help='upstream revision')
+    return parser.parse_args()
 
 
 def main():
@@ -66,12 +82,9 @@ def main():
     """
     # pylint: disable=too-many-locals
 
-    # forked commit
-    forked = 'd92d86ab066bd7ab6f2fccdb16e99ac01f559cf1'
-    # upstream commit
-    upstream = '24b3f9bd07380cd0bca9a70051d498b706f61e15'
+    args = parse_args()
 
-    cmd = ('git', 'diff', upstream, forked)
+    cmd = ('git', '-C', args.repo, 'diff', args.upstream_rev, args.modified_rev)
     output = subprocess.run(cmd, capture_output=True, check=True, text=True)
     patch = output.stdout
 
@@ -83,7 +96,7 @@ def main():
             if change.old is not None or change.new is None:
                 continue
 
-            cmd = ('git', 'blame', '-L{0},{0}'.format(change.new), forked,
+            cmd = ('git', '-C', args.repo, 'blame', '-L{0},{0}'.format(change.new), args.modified_rev,
                    diff.header.new_path)
             output = subprocess.run(cmd,
                                     capture_output=True,
@@ -110,7 +123,7 @@ def main():
 
     # Checkout the detached upstream revision in preparation for
     # cherry picking
-    cmd = ('git', 'checkout', '--detach', upstream)
+    cmd = ('git', '-C', args.repo, 'checkout', '--detach', args.upstream_rev)
     print(' '.join(cmd))
     subprocess.run(cmd, check=True)
 
@@ -118,7 +131,7 @@ def main():
     sorted_commits = [commit for _, commit in sorted(commits)]
 
     # Cherry pick all the commits from oldest to newest
-    cmd = ['git', 'cherry-pick'] + sorted_commits
+    cmd = ['git', '-C', args.repo, 'cherry-pick'] + sorted_commits
     print(' '.join(cmd))
     subprocess.run(cmd, check=True)
 
