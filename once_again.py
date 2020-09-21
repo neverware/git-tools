@@ -51,6 +51,7 @@ import subprocess
 
 import whatthepatch
 
+
 def parse_args():
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser()
@@ -84,7 +85,8 @@ def main():
 
     args = parse_args()
 
-    cmd = ('git', '-C', args.repo, 'diff', args.upstream_rev, args.modified_rev)
+    cmd = ('git', '-C', args.repo, 'diff', args.upstream_rev,
+           args.modified_rev)
     output = subprocess.run(cmd, capture_output=True, check=True, text=True)
     patch = output.stdout
 
@@ -96,7 +98,8 @@ def main():
             if change.old is not None or change.new is None:
                 continue
 
-            cmd = ('git', '-C', args.repo, 'blame', '-L{0},{0}'.format(change.new), args.modified_rev,
+            cmd = ('git', '-C', args.repo, 'blame',
+                   '-L{0},{0}'.format(change.new), args.modified_rev,
                    diff.header.new_path)
             output = subprocess.run(cmd,
                                     capture_output=True,
