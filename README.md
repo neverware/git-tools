@@ -1,5 +1,6 @@
 # git tools
 
-## once_again.py
+See the docstring at the top of each script for details on its
+operation.
 
-Alternate form of rebasing using cherry picks.
+- once_again.py: alternate form of rebasing using cherry picks
