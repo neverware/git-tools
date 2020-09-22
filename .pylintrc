@@ -1,2 +1,2 @@
 [MESSAGE CONTROL]
-disable=fixme,too-few-public-methods
+disable=duplicate-code,fixme,too-few-public-methods
